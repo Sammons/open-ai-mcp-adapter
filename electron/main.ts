@@ -1,12 +1,12 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { startMcpServer, stopMcpServer, getMcpServerStatus, getAllMcpServers, startAutoStartServers, stopAllMcpServers } from './services/mcpService';
+import { startMcpServer, stopMcpServer, getMcpServerStatus, getAllMcpServers, startAutoStartServers, stopAllMcpServers } from './services/mcp-service';
 import { AppConfig, McpServerConfig, NgrokConfig, NgrokStatus, ApiServerStatus, ApiServerState, McpServerState, McpTool, McpProtocolType } from '../src/types/index';
 import { LocalServer } from './local-server/local-server';
 import { NgrokState } from './local-server/ngrok';
 import { normalizeServerName } from './utils/name-utils';
-import { getOrCreateAggregatedClient } from './services/mcpService';
+import { getOrCreateAggregatedClient } from './services/mcp-service';
 
 // Keep a global reference to prevent garbage collection
 let mainWindow: BrowserWindow | null = null;
