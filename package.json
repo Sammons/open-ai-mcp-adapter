@@ -1,0 +1,51 @@
+{
+  "name": "open-ai-mcp-adapter",
+  "version": "1.0.0",
+  "description": "An Electron application for managing MCP servers and exposing them via ngrok for OpenAI integration",
+  "main": "dist/main.js",
+  "scripts": {
+    "start": "concurrently \"npm run watch\" \"electron .\"",
+    "build": "node esbuild.config.js",
+    "watch": "node esbuild.config.js --dev",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish"
+  },
+  "keywords": [
+    "electron",
+    "mcp",
+    "openai",
+    "ngrok",
+    "anthropic"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@electron-forge/cli": "^7.8.0",
+    "@electron-forge/maker-deb": "^7.8.0",
+    "@electron-forge/maker-rpm": "^7.8.0",
+    "@electron-forge/maker-squirrel": "^7.8.0",
+    "@electron-forge/maker-zip": "^7.8.0",
+    "@types/node": "^20.9.0",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@types/uuid": "^9.0.8",
+    "concurrently": "^8.2.2",
+    "electron": "^36.1.0",
+    "electron-esbuild": "^9.0.0",
+    "esbuild": "^0.21.0",
+    "esbuild-node-externals": "^1.9.0",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^7.0.0",
+    "@mui/material": "^7.0.2",
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "@ngrok/ngrok": "^1.5.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "uuid": "^9.0.1"
+  }
+}
