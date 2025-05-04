@@ -2,18 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Typography from '@mui/material/Typography';
 
 // Import our components
-import ServerList from './ServerList';
+import ServerList from './ServerList/index';
+import { SchemaGenerator } from './SchemaGenerator';
 import NgrokSettings from './NgrokSettings';
-import SchemaGenerator from './SchemaGenerator';
 
 // Import types
-import { AppConfig, McpServerState, NgrokState } from '../types';
+import { AppConfig, McpServerState, NgrokState, ApiServerState } from '../types';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -54,6 +53,7 @@ const App: React.FC = () => {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [mcpServers, setMcpServers] = useState<McpServerState[]>([]);
   const [ngrokStatus, setNgrokStatus] = useState<NgrokState | null>(null);
+  const [apiServerStatus, setApiServerStatus] = useState<ApiServerState | null>(null);
   
   // Handle tab change
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -75,6 +75,24 @@ const App: React.FC = () => {
         // Get ngrok status
         const status = await window.electronAPI.getNgrokStatus();
         setNgrokStatus(status);
+
+        // Get API server status
+        const apiStatus = await window.electronAPI.getApiServerStatus();
+        console.log('API Server Status:', apiStatus);
+        setApiServerStatus(apiStatus);
+        
+        // If API server should be running but isn't, try to start it
+        if (appConfig && appConfig.apiServer && appConfig.apiServer.enabled && 
+            apiStatus && apiStatus.status !== 'running') {
+          console.log('API server is not running but should be, attempting to start...');
+          const startResult = await window.electronAPI.startApiServer();
+          console.log('API server start result:', startResult);
+          
+          // Refresh API server status
+          const updatedApiStatus = await window.electronAPI.getApiServerStatus();
+          console.log('Updated API Server Status:', updatedApiStatus);
+          setApiServerStatus(updatedApiStatus);
+        }
       } catch (error) {
         console.error('Error loading initial data:', error);
       }
@@ -102,10 +120,16 @@ const App: React.FC = () => {
       setNgrokStatus(data);
     });
     
+    const apiServerStatusUnsubscribe = window.electronAPI.onApiServerStatusChange((_event, data) => {
+      console.log('API Server Status Changed:', data);
+      setApiServerStatus(data);
+    });
+    
     // Clean up event listeners
     return () => {
       mcpStatusUnsubscribe();
       ngrokStatusUnsubscribe();
+      apiServerStatusUnsubscribe();
     };
   }, []);
   
@@ -148,6 +172,21 @@ const App: React.FC = () => {
   // Stop ngrok
   const stopNgrok = async () => {
     await window.electronAPI.stopNgrok();
+  };
+
+  // Start API server manually if needed
+  const startApiServer = async () => {
+    console.log('Manually starting API server...');
+    try {
+      const result = await window.electronAPI.startApiServer();
+      console.log('API server start result:', result);
+      
+      // Refresh status
+      const apiStatus = await window.electronAPI.getApiServerStatus();
+      setApiServerStatus(apiStatus);
+    } catch (error) {
+      console.error('Error starting API server:', error);
+    }
   };
 
   return (
@@ -198,6 +237,8 @@ const App: React.FC = () => {
             <SchemaGenerator 
               ngrokStatus={ngrokStatus}
               mcpServers={mcpServers}
+              apiServerStatus={apiServerStatus}
+              onStartApiServer={startApiServer}
             />
           </TabPanel>
         </Box>

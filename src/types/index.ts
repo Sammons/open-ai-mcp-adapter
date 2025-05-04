@@ -1,12 +1,28 @@
+import { Tool } from '@modelcontextprotocol/sdk/types';
+
+// MCP Server protocol type
+export enum McpProtocolType {
+  HTTP = 'http',
+  SSE = 'sse',
+  StreamingHTTP = 'streaming-http',
+  STDIO = 'stdio'
+}
+
 // MCP Server configuration
 export interface McpServerConfig {
   id: string;
   name: string;
-  command: string;
-  args?: string[];
-  workingDir?: string;
   enabled: boolean;
   autoStart: boolean;
+  protocolType: McpProtocolType;
+  transport?: McpTransport;
+  command?: string;
+  args?: string[];
+  workingDir?: string;
+  remoteUrl?: string;
+  port?: number;
+  startTime?: number;
+  lastResponseTime?: number;
 }
 
 // MCP Server status
@@ -20,26 +36,49 @@ export enum McpServerStatus {
 // MCP Server state
 export interface McpServerState {
   id: string;
+  name: string;
   status: McpServerStatus;
-  pid?: number;
   error?: string;
-  port?: number;
   tools?: McpTool[];
+  port?: number;
   startTime?: number;
+  lastResponseTime?: number;
+  remoteUrl?: string;
 }
 
 // MCP Tool definition
 export interface McpTool {
   name: string;
   description: string;
-  parameters: Record<string, McpToolParameter>;
+  parameters: Record<string, any>;
+  disabled?: boolean;
+  inputSchema?: Record<string, any>;
+  // Source server ID to track which server this tool belongs to
+  sourceServerId?: string;
 }
 
-// MCP Tool parameter
-export interface McpToolParameter {
-  type: string;
-  description: string;
-  required: boolean;
+// API Server configuration
+export interface ApiServerConfig {
+  enabled: boolean;
+  port: number;
+  autoStart: boolean;
+}
+
+// API Server status
+export enum ApiServerStatus {
+  Stopped = 'stopped',
+  Starting = 'starting',
+  Running = 'running',
+  Error = 'error'
+}
+
+// API Server state
+export interface ApiServerState {
+  status: ApiServerStatus;
+  port: number;
+  url: string;
+  startTime?: number;
+  error?: string;
 }
 
 // Ngrok configuration
@@ -70,6 +109,7 @@ export interface NgrokState {
 export interface AppConfig {
   mcpServers: McpServerConfig[];
   ngrok: NgrokConfig;
+  apiServer: ApiServerConfig;
 }
 
 // Electron Window API
@@ -84,6 +124,11 @@ export interface ElectronAPI {
   getMcpServerStatus: (serverId: string) => Promise<McpServerState>;
   getAllMcpServers: () => Promise<McpServerState[]>;
   
+  // API server management
+  startApiServer: () => Promise<boolean>;
+  stopApiServer: () => Promise<boolean>;
+  getApiServerStatus: () => Promise<ApiServerState>;
+  
   // Ngrok management
   startNgrok: (options: any) => Promise<boolean>;
   stopNgrok: () => Promise<boolean>;
@@ -91,6 +136,7 @@ export interface ElectronAPI {
   
   // Event listeners
   onMcpServerStatusChange: (callback: (event: any, data: McpServerState) => void) => () => void;
+  onApiServerStatusChange: (callback: (event: any, data: ApiServerState) => void) => () => void;
   onNgrokStatusChange: (callback: (event: any, data: NgrokState) => void) => () => void;
 }
 
@@ -99,4 +145,74 @@ declare global {
   interface Window {
     electronAPI: ElectronAPI;
   }
+}
+
+export type McpTransport =
+  | { type: 'stdio'; config: StdioTransportConfig }
+  | { type: 'sse'; config: SseTransportConfig }
+  | { type: 'streaming-http'; config: StreamingHttpTransportConfig };
+
+export interface StdioTransportConfig {
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+}
+
+export interface SseTransportConfig {
+  url: string;
+  headers?: Record<string, string>;
+}
+
+export interface StreamingHttpTransportConfig {
+  url: string;
+  headers?: Record<string, string>;
+}
+
+// Logging types
+export enum LogLevel {
+  Info = 'info',
+  Warning = 'warning',
+  Error = 'error',
+  Debug = 'debug'
+}
+
+export enum LogSource {
+  Server = 'server',
+  ApiServer = 'api-server',
+  Ngrok = 'ngrok',
+  System = 'system'
+}
+
+export interface LogEntry {
+  id: string;
+  timestamp: number;
+  level: LogLevel;
+  source: LogSource;
+  message: string;
+  details?: any;
+  serverId?: string;
+}
+
+export interface LogFilter {
+  levels: Set<LogLevel>;
+  sources: Set<LogSource>;
+  serverIds: Set<string>;
+  searchTerm: string;
+  startTime?: number;
+  endTime?: number;
+}
+
+export interface McpServer {
+  id: string;
+  name: string;
+  endpoint: string;
+  status: McpServerStatus;
+  tools?: McpTool[];
+}
+
+export interface McpEvent<T = any> {
+  type: string;
+  serverId: string;
+  data: T;
+  timestamp: number;
 } 

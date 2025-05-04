@@ -1,5 +1,15 @@
 const esbuild = require('esbuild');
 const { nodeExternalsPlugin } = require('esbuild-node-externals');
+const path = require('path');
+const fs = require('fs');
+
+// Function to copy index.html to dist
+const copyIndexHtml = () => {
+  const sourceHtml = path.join(__dirname, 'public', 'index.html');
+  const targetHtml = path.join(__dirname, 'dist', 'index.html');
+  fs.copyFileSync(sourceHtml, targetHtml);
+  console.log('✓ Copied index.html to dist directory');
+};
 
 // Main process build configuration
 const mainConfig = {
@@ -7,7 +17,7 @@ const mainConfig = {
   bundle: true,
   platform: 'node',
   target: 'node16',
-  outfile: 'dist/main.js',
+  outfile: 'dist/electron/main.js',
   external: ['electron'],
   plugins: [nodeExternalsPlugin()],
 };
@@ -18,7 +28,7 @@ const preloadConfig = {
   bundle: true,
   platform: 'node',
   target: 'node16',
-  outfile: 'dist/preload.js',
+  outfile: 'dist/electron/preload.js',
   external: ['electron'],
   plugins: [nodeExternalsPlugin()],
 };
@@ -38,16 +48,32 @@ const rendererConfig = {
   define: {
     'process.env.NODE_ENV': '"development"'
   },
+  external: ['electron'],
 };
 
 // Production build
 const buildAll = async () => {
   try {
+    // Ensure dist directory exists
+    const fs = require('fs');
+    const distDir = path.join(__dirname, 'dist');
+    const electronDistDir = path.join(distDir, 'electron');
+    
+    if (!fs.existsSync(distDir)) {
+      fs.mkdirSync(distDir);
+    }
+    if (!fs.existsSync(electronDistDir)) {
+      fs.mkdirSync(electronDistDir);
+    }
+
+    // Copy index.html before build
+    copyIndexHtml();
+
     // Build main process
     await esbuild.build({
       ...mainConfig,
       minify: true,
-      sourcemap: false,
+      sourcemap: true,
       define: {
         'process.env.NODE_ENV': '"production"'
       },
@@ -57,7 +83,7 @@ const buildAll = async () => {
     await esbuild.build({
       ...preloadConfig,
       minify: true,
-      sourcemap: false,
+      sourcemap: true,
       define: {
         'process.env.NODE_ENV': '"production"'
       },
@@ -67,7 +93,7 @@ const buildAll = async () => {
     await esbuild.build({
       ...rendererConfig,
       minify: true,
-      sourcemap: false,
+      sourcemap: true,
       define: {
         'process.env.NODE_ENV': '"production"'
       },
@@ -83,6 +109,21 @@ const buildAll = async () => {
 // Development build with watch
 const devAll = async () => {
   try {
+    // Ensure dist directory exists
+    const fs = require('fs');
+    const distDir = path.join(__dirname, 'dist');
+    const electronDistDir = path.join(distDir, 'electron');
+    
+    if (!fs.existsSync(distDir)) {
+      fs.mkdirSync(distDir);
+    }
+    if (!fs.existsSync(electronDistDir)) {
+      fs.mkdirSync(electronDistDir);
+    }
+
+    // Copy index.html before build
+    copyIndexHtml();
+
     // Build main process with watch
     const mainContext = await esbuild.context({
       ...mainConfig,

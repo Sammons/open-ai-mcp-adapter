@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -9,7 +9,10 @@ import {
   Switch,
   Chip,
   Grid,
-  CircularProgress
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemText
 } from '@mui/material';
 import { NgrokConfig, NgrokState, NgrokStatus } from '../types';
 
@@ -30,6 +33,25 @@ const NgrokSettings: React.FC<NgrokSettingsProps> = ({
 }) => {
   const [config, setConfig] = useState<NgrokConfig>(ngrokConfig);
   const [port, setPort] = useState<string>('3000');
+  const [connectionHistory, setConnectionHistory] = useState<Array<{
+    timestamp: number;
+    status: NgrokStatus;
+    url?: string;
+    error?: string;
+  }>>([]);
+
+  // Update connection history when status changes
+  useEffect(() => {
+    if (ngrokStatus) {
+      setConnectionHistory(prev => [
+        {
+          timestamp: Date.now(),
+          ...ngrokStatus
+        },
+        ...prev.slice(0, 9) // Keep last 10 entries
+      ]);
+    }
+  }, [ngrokStatus]);
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,6 +106,75 @@ const NgrokSettings: React.FC<NgrokSettingsProps> = ({
     }
     
     return <Chip label={status} color={color} />;
+  };
+
+  // Add connection metrics component
+  const ConnectionMetrics: React.FC = () => {
+    if (!ngrokStatus?.status === NgrokStatus.Connected) return null;
+
+    return (
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="subtitle2" gutterBottom>Connection Metrics</Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={6} sm={3}>
+            <Paper sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="h6">{formatConnectionTime(ngrokStatus?.connectedSince)}</Typography>
+              <Typography variant="body2" color="textSecondary">Uptime</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={6} sm={3}>
+            <Paper sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="h6">{connectionHistory.length}</Typography>
+              <Typography variant="body2" color="textSecondary">Connections Today</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={6} sm={3}>
+            <Paper sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="h6">
+                {connectionHistory.filter(h => h.status === NgrokStatus.Error).length}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">Errors Today</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={6} sm={3}>
+            <Paper sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="h6">
+                {connectionHistory.filter(h => h.status === NgrokStatus.Connected).length}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">Successful Connections</Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
+    );
+  };
+
+  // Add connection history component
+  const ConnectionHistory: React.FC = () => {
+    if (connectionHistory.length === 0) return null;
+
+    return (
+      <Box sx={{ mt: 3 }}>
+        <Typography variant="subtitle2" gutterBottom>Connection History</Typography>
+        <List dense>
+          {connectionHistory.map((entry, index) => (
+            <ListItem key={index} divider={index < connectionHistory.length - 1}>
+              <ListItemText
+                primary={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2">
+                      {new Date(entry.timestamp).toLocaleTimeString()}
+                    </Typography>
+                    {getStatusChip(entry.status)}
+                  </Box>
+                }
+                secondary={entry.error || entry.url}
+              />
+            </ListItem>
+          ))}
+        </List>
+      </Box>
+    );
   };
 
   const isConnected = ngrokStatus?.status === NgrokStatus.Connected;
@@ -150,9 +241,15 @@ const NgrokSettings: React.FC<NgrokSettingsProps> = ({
             )}
           </Grid>
         </Grid>
+
+        <ConnectionMetrics />
       </Paper>
       
       <Paper sx={{ p: 3, mb: 3 }}>
+        <ConnectionHistory />
+      </Paper>
+      
+      <Paper sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>Configuration</Typography>
         
         <Grid container spacing={3}>

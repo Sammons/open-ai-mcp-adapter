@@ -14,6 +14,11 @@ contextBridge.exposeInMainWorld(
     getMcpServerStatus: (serverId: string) => ipcRenderer.invoke('get-mcp-server-status', serverId),
     getAllMcpServers: () => ipcRenderer.invoke('get-all-mcp-servers'),
     
+    // API server management
+    startApiServer: () => ipcRenderer.invoke('start-api-server'),
+    stopApiServer: () => ipcRenderer.invoke('stop-api-server'),
+    getApiServerStatus: () => ipcRenderer.invoke('get-api-server-status'),
+    
     // Ngrok management
     startNgrok: (options: any) => ipcRenderer.invoke('start-ngrok', options),
     stopNgrok: () => ipcRenderer.invoke('stop-ngrok'),
@@ -25,6 +30,14 @@ contextBridge.exposeInMainWorld(
       ipcRenderer.on('mcp-server-status-change', listener);
       return () => {
         ipcRenderer.removeListener('mcp-server-status-change', listener);
+      };
+    },
+    
+    onApiServerStatusChange: (callback: (event: any, data: any) => void) => {
+      const listener = (_event: any, data: any) => callback(_event, data);
+      ipcRenderer.on('api-server-status-change', listener);
+      return () => {
+        ipcRenderer.removeListener('api-server-status-change', listener);
       };
     },
     
